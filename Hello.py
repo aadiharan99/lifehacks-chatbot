@@ -14,6 +14,11 @@
 
 import streamlit as st
 from streamlit.logger import get_logger
+import langchain
+from langchain.chains.conversation.memory import ConversationBufferMemory
+from langchain import OpenAI, LLMChain, PromptTemplate
+import random
+import time
 
 LOGGER = get_logger(__name__)
 
@@ -22,29 +27,63 @@ def run():
     st.set_page_config(
         page_title="Hello",
         page_icon="👋",
+
     )
+    st.title("LifeHacker: The Lifehacks chatbot")
+    st.divider()
+    st.subheader("A conversational AI chatbot to generate life hacks for different situations in life, from travelling to kitchen to cleaning your apartment")
+    st.divider()
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    for message in st.session_state.messages:
+      with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+    if prompt := st.chat_input("What is up?"):
+    # Display user message in chat message container
+      with st.chat_message("user"):
+          st.markdown(prompt)
+      # Add user message to chat history
+      st.session_state.messages.append({"role": "user", "content": prompt})
+    
+    ## need to have the bot say a default hello first
+      with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
 
-    st.write("# Welcome to Streamlit! 👋")
-
-    st.sidebar.success("Select a demo above.")
-
-    st.markdown(
+        template = """You are a life guru who makes people's lives easier by giving life hacks to different situations. Given the text of question, it is your job to write a answer that question with example.
+        {chat_history}
+        Human: {question}
+        AI:
         """
-        Streamlit is an open-source app framework built specifically for
-        Machine Learning and Data Science projects.
-        **👈 Select a demo from the sidebar** to see some examples
-        of what Streamlit can do!
-        ### Want to learn more?
-        - Check out [streamlit.io](https://streamlit.io)
-        - Jump into our [documentation](https://docs.streamlit.io)
-        - Ask a question in our [community
-          forums](https://discuss.streamlit.io)
-        ### See more complex demos
-        - Use a neural net to [analyze the Udacity Self-driving Car Image
-          Dataset](https://github.com/streamlit/demo-self-driving)
-        - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
-    """
-    )
+        prompt_template = PromptTemplate(input_variables=["chat_history","question"], template=template)
+        memory = ConversationBufferMemory(memory_key="chat_history")
+
+        llm_chain = LLMChain(
+            llm=OpenAI(temperature=0.7, openai_api_key="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"),
+            prompt=prompt_template,
+            verbose=True,
+            memory=memory,
+        )
+
+        result = llm_chain.predict(question=prompt)
+
+        # assistant_response = random.choice(
+        #     [
+        #         "Hello there! How can I assist you today?",
+        #         "Hi, human! Is there anything I can help you with?"
+        #     ]
+        # )
+        # Simulate stream of response with milliseconds delay
+        for chunk in result.split():
+            full_response += chunk + " "
+            time.sleep(0.15)
+            # Add a blinking cursor to simulate typing
+            message_placeholder.markdown(full_response + "▌")
+        message_placeholder.markdown(full_response)
+    # Add assistant response to chat history
+      st.session_state.messages.append({"role": "assistant", "content": full_response})
+
+
 
 
 if __name__ == "__main__":
