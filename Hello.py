@@ -14,38 +14,85 @@
 
 import streamlit as st
 from streamlit.logger import get_logger
+import google.generativeai as palm
+import time
 
 LOGGER = get_logger(__name__)
 
 
+
 def run():
-    st.set_page_config(
-        page_title="Hello",
-        page_icon="👋",
-    )
+   
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    for message in st.session_state.messages:
+      with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+    if prompt := st.chat_input("Ask away!"):
+    # Display user message in chat message container
+      with st.chat_message("user"):
+          st.markdown(prompt)
+      # Add user message to chat history
+      st.session_state.messages.append({"role": "user", "content": prompt})
+    
+    ## need to have the bot say a default hello first
+      with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
+        palm.configure(api_key= st.secrets["PALM-AI-API-KEY"])
 
-    st.write("# Welcome to Streamlit! 👋")
+        defaults = {
+          'model': 'models/chat-bison-001',
+          'temperature': 0.25,
+          'candidate_count': 1,
+          'top_k': 40,
+          'top_p': 0.95,
+        }
+        context = "You are a life-guru with the solution to most if not all the problems in the world. You need to give a crisp and concise solution to problems posed to you. List all possible solutions and life hacks for the problem posed as a numbered list, along with examples if applicable. Your core domains of expertise are travel, cooking, kitchen and home and life. Introduce to the user that you can offer solutions to most problems in your core domain."
+        examples = [
+            [
+              "Hi",
+              "Hello there. How are you doing today?"
+            ],
+            [
+              "I am doing good.",
+              "Great! Is there anything I can help you with?"
+            ],
+            [
+              "What can you help me with?",
+              "I can provide solutions to most problems in the domain of travel, cooking, kitchen, home and life. Feel free to try me out."
+            ]
+          ]
+        messages = []
+        messages.append(prompt)
+        response = palm.chat(
+          **defaults,
+          context=context,
+          examples=examples,
+          messages=messages
+        )
+        result = response.last # Response of the AI to your most recent request
 
-    st.sidebar.success("Select a demo above.")
+        for chunk in result.split():
+            full_response += chunk + " "
+            time.sleep(0.05)
+            # Add a blinking cursor to simulate typing
+            message_placeholder.markdown(full_response + "▌")
+        message_placeholder.markdown(full_response)
+    # Add assistant response to chat history
+      st.session_state.messages.append({"role": "assistant", "content": full_response})
 
-    st.markdown(
-        """
-        Streamlit is an open-source app framework built specifically for
-        Machine Learning and Data Science projects.
-        **👈 Select a demo from the sidebar** to see some examples
-        of what Streamlit can do!
-        ### Want to learn more?
-        - Check out [streamlit.io](https://streamlit.io)
-        - Jump into our [documentation](https://docs.streamlit.io)
-        - Ask a question in our [community
-          forums](https://discuss.streamlit.io)
-        ### See more complex demos
-        - Use a neural net to [analyze the Udacity Self-driving Car Image
-          Dataset](https://github.com/streamlit/demo-self-driving)
-        - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
-    """
-    )
+
 
 
 if __name__ == "__main__":
+    st.set_page_config(
+        page_title="LifeBot",
+        layout="wide",
+
+    )
+    st.session_state.intro = False
+    st.title("LifeBot: The Lifehacks chatbot")
+    st.divider()      
     run()
+    st.session_state.intro = True
