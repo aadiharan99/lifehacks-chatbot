@@ -14,31 +14,21 @@
 
 import streamlit as st
 from streamlit.logger import get_logger
-import langchain
-from langchain.chains.conversation.memory import ConversationBufferMemory
-from langchain import OpenAI, LLMChain, PromptTemplate
-import random
+import google.generativeai as palm
 import time
 
 LOGGER = get_logger(__name__)
 
 
-def run():
-    st.set_page_config(
-        page_title="Hello",
-        page_icon="👋",
 
-    )
-    st.title("LifeHacker: The Lifehacks chatbot")
-    st.divider()
-    st.subheader("A conversational AI chatbot to generate life hacks for different situations in life, from travelling to kitchen to cleaning your apartment")
-    st.divider()
+def run():
+   
     if "messages" not in st.session_state:
         st.session_state.messages = []
     for message in st.session_state.messages:
       with st.chat_message(message["role"]):
         st.markdown(message["content"])
-    if prompt := st.chat_input("What is up?"):
+    if prompt := st.chat_input("Ask away!"):
     # Display user message in chat message container
       with st.chat_message("user"):
           st.markdown(prompt)
@@ -49,34 +39,30 @@ def run():
       with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
+        palm.configure(api_key= st.secrets["PALM-AI-API-KEY"])
 
-        template = """You are a life guru who makes people's lives easier by giving life hacks to different situations. Given the text of question, it is your job to write a answer that question with example.
-        {chat_history}
-        Human: {question}
-        AI:
-        """
-        prompt_template = PromptTemplate(input_variables=["chat_history","question"], template=template)
-        memory = ConversationBufferMemory(memory_key="chat_history")
-
-        llm_chain = LLMChain(
-            llm=OpenAI(temperature=0.7, openai_api_key="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"),
-            prompt=prompt_template,
-            verbose=True,
-            memory=memory,
+        defaults = {
+          'model': 'models/chat-bison-001',
+          'temperature': 0.25,
+          'candidate_count': 1,
+          'top_k': 40,
+          'top_p': 0.95,
+        }
+        context = "Be a life guru that provides tips for different real-life problems and situations, from travelling to kitchen hacks to creatively sprucing up your apartment. \nGive the response as a numbered list with concise information, each point being separated by a new line"
+        examples = []
+        messages = []
+        messages.append(prompt)
+        response = palm.chat(
+          **defaults,
+          context=context,
+          examples=examples,
+          messages=messages
         )
+        result = response.last # Response of the AI to your most recent request
 
-        result = llm_chain.predict(question=prompt)
-
-        # assistant_response = random.choice(
-        #     [
-        #         "Hello there! How can I assist you today?",
-        #         "Hi, human! Is there anything I can help you with?"
-        #     ]
-        # )
-        # Simulate stream of response with milliseconds delay
         for chunk in result.split():
             full_response += chunk + " "
-            time.sleep(0.15)
+            time.sleep(0.05)
             # Add a blinking cursor to simulate typing
             message_placeholder.markdown(full_response + "▌")
         message_placeholder.markdown(full_response)
@@ -87,4 +73,30 @@ def run():
 
 
 if __name__ == "__main__":
+    st.set_page_config(
+        page_title="LifeBot",
+        layout="wide",
+
+    )
+    st.session_state.intro = False
+    st.title("LifeBot: The Lifehacks chatbot")
+    st.divider()
+    # intro_placeholder = st.empty()
+    # intro = ""
+    # intro_text = "Travelling hacks, Life hacks, Kitchen problems, Trouble in Paradise? We have you covered. Ask Away!"
+    # if not st.session_state.intro:
+    #   for intro_chunk in intro_text.split():
+    #         intro += intro_chunk + " "
+    #         time.sleep(0.5)
+    #         # Add a blinking cursor to simulate typing
+    #         intro_placeholder.subheader(intro + "▌")
+      
+
+      # sample_prompts = ["What is the best time to book airplane tickets?", "How to optimize living space?", "How to do well in Life?"]
+
+
+      # st.subheader("A conversational AI chatbot to generate life hacks for different situations in life, from travelling to kitchen to cleaning your apartment")
+      # st.divider()
+      
     run()
+    st.session_state.intro = True
