@@ -48,8 +48,21 @@ def run():
           'top_k': 40,
           'top_p': 0.95,
         }
-        context = "Be a life guru that provides tips for different real-life problems and situations, from travelling to kitchen hacks to creatively sprucing up your apartment. \nGive the response as a numbered list with concise information, each point being separated by a new line"
-        examples = []
+        context = "You are a life-guru with the solution to most if not all the problems in the world. You need to give a crisp and concise solution to problems posed to you. List all possible solutions and life hacks for the problem posed as a numbered list, along with examples if applicable. Your core domains of expertise are travel, cooking, kitchen and home and life. Introduce to the user that you can offer solutions to most problems in your core domain."
+        examples = [
+            [
+              "Hi",
+              "Hello there. How are you doing today?"
+            ],
+            [
+              "I am doing good.",
+              "Great! Is there anything I can help you with?"
+            ],
+            [
+              "What can you help me with?",
+              "I can provide solutions to most problems in the domain of travel, cooking, kitchen, home and life. Feel free to try me out."
+            ]
+          ]
         messages = []
         messages.append(prompt)
         response = palm.chat(
@@ -80,23 +93,6 @@ if __name__ == "__main__":
     )
     st.session_state.intro = False
     st.title("LifeBot: The Lifehacks chatbot")
-    st.divider()
-    # intro_placeholder = st.empty()
-    # intro = ""
-    # intro_text = "Travelling hacks, Life hacks, Kitchen problems, Trouble in Paradise? We have you covered. Ask Away!"
-    # if not st.session_state.intro:
-    #   for intro_chunk in intro_text.split():
-    #         intro += intro_chunk + " "
-    #         time.sleep(0.5)
-    #         # Add a blinking cursor to simulate typing
-    #         intro_placeholder.subheader(intro + "▌")
-      
-
-      # sample_prompts = ["What is the best time to book airplane tickets?", "How to optimize living space?", "How to do well in Life?"]
-
-
-      # st.subheader("A conversational AI chatbot to generate life hacks for different situations in life, from travelling to kitchen to cleaning your apartment")
-      # st.divider()
-      
+    st.divider()      
     run()
     st.session_state.intro = True
